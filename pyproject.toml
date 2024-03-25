@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "crawl-all-links"
+version = "0.1.0"
+description = ""
+authors = ["limao <1078769434@qq.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+scrapy = "^2.11.1"
+sqlalchemy = "^2.0.29"
+pydantic = "^2.6.4"
+pydantic-settings = "^2.2.1"
+pybloom-live = "^4.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
