@@ -2,6 +2,7 @@
 #
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+import re
 
 from scrapy import signals
 
@@ -60,6 +61,9 @@ class CrawlAllLinksDownloaderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the downloader middleware does not modify the
     # passed objects.
+    media_regex = re.compile(
+        r'\.(mp4|jpg|png|gif|pdf|docx|xls|css|js|doc|word|xlsx|ppt|pptx|zip|rar|tar|tar.gz|taz|exe|apk|dmg|msi|app|json|mp3|wav|ogg|m4a|flac|avi|mov|wmv|flv|webm|xml|jpeg|bmp|tiff|tif|svg|webp)$',
+        re.IGNORECASE)
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -71,7 +75,9 @@ class CrawlAllLinksDownloaderMiddleware:
     def process_request(self, request, spider):
         # Called for each request that goes through the downloader
         # middleware.
-
+        if self.media_regex.search(request.url):
+            # 修改原始请求的方法为 HEAD，避免下载内容
+            request.method = 'HEAD'
         # Must either:
         # - return None: continue processing this request
         # - or return a Response object
