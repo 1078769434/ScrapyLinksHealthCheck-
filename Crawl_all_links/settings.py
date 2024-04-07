@@ -7,11 +7,15 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
+
 BOT_NAME = "Crawl_all_links"
 
 SPIDER_MODULES = ["Crawl_all_links.spiders"]
 NEWSPIDER_MODULE = "Crawl_all_links.spiders"
-
+#是否开启 referer 中间件。
+REFERER_ENABLED = True
+#默认的 referer 策略
+REFERRER_POLICY = 'scrapy.spidermiddlewares.referer.DefaultReferrerPolicy'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "Crawl_all_links (+http://www.yourdomain.com)"

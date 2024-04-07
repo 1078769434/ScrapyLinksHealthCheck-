@@ -56,9 +56,6 @@ class LinkDetectionSpider(BaseSpider):
 
         referer_header = response.request.headers.get('Referer')
         referer = self.process_referer(referer_header)
-
-
-
         item['url'] = response.url
         item['status_code'] = response.status
         item['category'] = self.check_url_category(response)

@@ -1,14 +1,18 @@
 import logging
 from datetime import datetime
 from urllib.parse import urlparse
-from typing import List, Union, Optional
+
 import scrapy
 import re
+from Crawl_all_links.utils.page_type import PageType
+from scrapy import signals
+
 from Crawl_all_links.config.spider_config import settings
 from pybloom_live import BloomFilter
 from Crawl_all_links.utils.log_config import logger
-class BaseSpider(scrapy.Spider):
 
+
+class BaseSpider(scrapy.Spider):
     start_urls = [settings.START_URL]
 
     headers = {
@@ -57,18 +61,47 @@ class BaseSpider(scrapy.Spider):
         'DOWNLOAD_DELAY': settings.DOWNLOAD_DELAY,
         'CONCURRENT_REQUESTS': settings.CONCURRENT_REQUESTS,
         'HTTPERROR_ALLOW_ALL': settings.HTTPERROR_ALLOW_ALL,
-
+        'DEPTH_STATS_VERBOSE': True,
         'SQLALCHEMY_DB_SETTINGS': {
             # 本地数据库
             'database_url': str(settings.POSTGRES_URL)
         },
     }
 
-
     def __init__(self, *args, **kwargs):
         super(BaseSpider, self).__init__(*args, **kwargs)
         self.domain = self.get_domain_name(settings.START_URL)
         self.visited_urls = BloomFilter(capacity=1000000, error_rate=0.001)
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        """
+        从爬虫实例中创建一个Spider实例。
+
+        :param cls: 类方法的约定参数，指代当前类。
+        :param crawler: 从该crawler实例中创建Spider。
+        :param args: 位置参数，传递给Spider构造函数。
+        :param kwargs: 关键字参数，传递给Spider构造函数。
+        :return: 返回一个初始化的Spider实例。
+        """
+        spider = super(BaseSpider, cls).from_crawler(crawler, *args, **kwargs)
+        # 连接spider_closed信号，当爬虫关闭时执行指定的函数
+        """
+        该函数是Scrapy爬虫框架中的一个连接函数，用于将spider_closed信号与spider对象的spider_closed方法连接起来。
+        当爬虫关闭时，会触发spider_closed信号，此时会调用spider对象的spider_closed方法。
+        这样可以在爬虫关闭时执行一些必要的清理工作。
+        """
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
+    def spider_closed(self, spider):
+        """
+        当Spider关闭时执行的操作。
+
+        :param spider: 关闭的Spider实例。
+        """
+        # 记录Spider关闭信息
+        spider.logger.info("Spider closed: %s", spider.name)
 
     def clean_content(self, content: str) -> str:
         """
@@ -90,23 +123,23 @@ class BaseSpider(scrapy.Spider):
 
     def check_url_category(self, lower_url: str) -> str:
         if any(lower_url.endswith(ext) for ext in self.video_extensions):
-            return 'video'
+            return PageType.VIDEO.value
         elif any(lower_url.endswith(ext) for ext in self.image_extensions):
-            return 'image'
+            return PageType.IMAGE.value
         elif any(lower_url.endswith(ext) for ext in self.content_extensions):
-            return 'content'
+            return PageType.CONTENT.value
         elif any(lower_url.endswith(ext) for ext in self.document_extensions):
-            return 'document'
+            return PageType.DOCUMENT.value
         elif any(lower_url.endswith(ext) for ext in self.js_extensions):
-            return 'js'
+            return PageType.JS.value
         elif any(lower_url.endswith(ext) for ext in self.executable_extensions):
-            return 'executable'
+            return PageType.EXECUTABLE.value
         elif any(lower_url.endswith(ext) for ext in self.archive_extensions):
-            return 'archive'
+            return PageType.ARCHIVE.value
         elif any(lower_url.endswith(ext) for ext in self.audio_extensions):
-            return 'audio'
+            return PageType.AUDIO.value
         else:
-            return 'other'
+            return PageType.OTHER.value
 
     def extract_keywords(self, response):
         """
@@ -174,7 +207,6 @@ class BaseSpider(scrapy.Spider):
             print(f"Error parsing URL '{url}': {e}")
             return None
 
-
     def is_external_link(self, url: str) -> bool:
         """
         检查给定的URL是否为外链。
@@ -190,7 +222,6 @@ class BaseSpider(scrapy.Spider):
             return False
         else:
             return True
-
 
     def process_referer(self, referer_header):
         if referer_header:
