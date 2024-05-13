@@ -58,7 +58,7 @@ class LinkDetectionSpider(BaseSpider):
         referer = self.process_referer(referer_header)
         item['url'] = response.url
         item['status_code'] = response.status
-        item['category'] = self.check_url_category(response)
+        item['category'] = self.check_url_category(response.url)
         item['is_external'] = self.is_external_link(response.url)
         item['etag'] = self.extract_header(response, 'etag')
         item['last_modified'] = self.parse_datetime_header(

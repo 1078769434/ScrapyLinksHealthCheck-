@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+
 from urllib.parse import urlparse
 
 import scrapy
@@ -7,7 +7,9 @@ import re
 from Crawl_all_links.utils.page_type import PageType
 from scrapy import signals
 
-from Crawl_all_links.config.spider_config import settings
+import re
+from datetime import datetime
+from Crawl_all_links.config.base_config import settings
 from pybloom_live import BloomFilter
 from Crawl_all_links.utils.log_config import logger
 
@@ -54,7 +56,7 @@ class BaseSpider(scrapy.Spider):
 
     custom_settings = {
         'ITEM_PIPELINES': {
-            "page_patrol.pipelines.WendengAllSnapShotPipeline": 300
+            "Crawl_all_links.import_pg_db.pipelines.CrawlAllLinksPipeline": 300
         },
         # 深度限制 无限制
         'DEPTH_LIMIT': settings.DEPTH_LIMIT,
@@ -72,36 +74,41 @@ class BaseSpider(scrapy.Spider):
         super(BaseSpider, self).__init__(*args, **kwargs)
         self.domain = self.get_domain_name(settings.START_URL)
         self.visited_urls = BloomFilter(capacity=1000000, error_rate=0.001)
-
-    @classmethod
-    def from_crawler(cls, crawler, *args, **kwargs):
-        """
-        从爬虫实例中创建一个Spider实例。
-
-        :param cls: 类方法的约定参数，指代当前类。
-        :param crawler: 从该crawler实例中创建Spider。
-        :param args: 位置参数，传递给Spider构造函数。
-        :param kwargs: 关键字参数，传递给Spider构造函数。
-        :return: 返回一个初始化的Spider实例。
-        """
-        spider = super(BaseSpider, cls).from_crawler(crawler, *args, **kwargs)
-        # 连接spider_closed信号，当爬虫关闭时执行指定的函数
-        """
-        该函数是Scrapy爬虫框架中的一个连接函数，用于将spider_closed信号与spider对象的spider_closed方法连接起来。
-        当爬虫关闭时，会触发spider_closed信号，此时会调用spider对象的spider_closed方法。
-        这样可以在爬虫关闭时执行一些必要的清理工作。
-        """
-        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
-        return spider
-
-    def spider_closed(self, spider):
-        """
-        当Spider关闭时执行的操作。
-
-        :param spider: 关闭的Spider实例。
-        """
-        # 记录Spider关闭信息
-        spider.logger.info("Spider closed: %s", spider.name)
+        # 添加月份名称到数字的映射
+        self.month_numbers = {
+            'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
+            'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
+            'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+        }
+    # @classmethod
+    # def from_crawler(cls, crawler, *args, **kwargs):
+    #     """
+    #     从爬虫实例中创建一个Spider实例。
+    #
+    #     :param cls: 类方法的约定参数，指代当前类。
+    #     :param crawler: 从该crawler实例中创建Spider。
+    #     :param args: 位置参数，传递给Spider构造函数。
+    #     :param kwargs: 关键字参数，传递给Spider构造函数。
+    #     :return: 返回一个初始化的Spider实例。
+    #     """
+    #     spider = super(BaseSpider, cls).from_crawler(crawler, *args, **kwargs)
+    #     # 连接spider_closed信号，当爬虫关闭时执行指定的函数
+    #     """
+    #     该函数是Scrapy爬虫框架中的一个连接函数，用于将spider_closed信号与spider对象的spider_closed方法连接起来。
+    #     当爬虫关闭时，会触发spider_closed信号，此时会调用spider对象的spider_closed方法。
+    #     这样可以在爬虫关闭时执行一些必要的清理工作。
+    #     """
+    #     crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+    #     return spider
+    #
+    # def spider_closed(self, spider):
+    #     """
+    #     当Spider关闭时执行的操作。
+    #
+    #     :param spider: 关闭的Spider实例。
+    #     """
+    #     # 记录Spider关闭信息
+    #     spider.logger.info("Spider closed: %s", spider.name)
 
     def clean_content(self, content: str) -> str:
         """
@@ -158,27 +165,39 @@ class BaseSpider(scrapy.Spider):
             logging.error(f"Error extracting keywords: {e}")
             return '无关键词'
 
+
     def parse_datetime(self, datetime_str):
         if not datetime_str:
             return None
 
-        # 检查传入的日期时间字符串来确定使用的格式
-        if ' ' in datetime_str:
-            # 如果字符串中包含空格，则假定它包含日期和时间
+        # 检查日期时间字符串的格式
+        if 'GMT' in datetime_str:
+            fmt = "%a, %d %b %Y %H:%M:%S %Z"
+        elif ' ' in datetime_str:
             fmt = "%Y-%m-%d %H:%M"
         else:
-            # 如果没有空格，则假定它仅包含日期
             fmt = "%Y-%m-%d"
 
         try:
             parsed_datetime = datetime.strptime(datetime_str, fmt)
+            # 如果需要统一输出格式，可以使用以下代码
             return parsed_datetime.strftime("%Y-%m-%d %H:%M:%S")
         except ValueError:
-            print(f"Error parsing datetime string '{datetime_str}' with format '{fmt}'")
-            return None
+            match = re.match(r'^\w{3}, (\d{2}) (\w{3}) (\d{4}) (\d{2}):(\d{2}):(\d{2}) GMT$', datetime_str)
+            if match:
+                # 如果日期时间字符串是' Sat, 12 Dec 2020 12:45:45 GMT'格式，尝试转换
+                day, month, year, hour, minute, second = map(int, match.groups())
+                parsed_datetime = datetime(year, self.month_numbers[month], day, hour, minute, second)
+                return parsed_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                print(f"Error parsing datetime string '{datetime_str}' with format '{fmt}'")
+                return None
+
+
+
 
     # 请求头last_modified 的解析
-    def parse_datetime_header(self, datetime_bytes, fmt="%a, %d %b %Y %H:%M:%S %Z"):
+    def parse_datetime_header(self, datetime_bytes):
         try:
             return self.parse_datetime(datetime_bytes.decode())
         except (AttributeError, ValueError):

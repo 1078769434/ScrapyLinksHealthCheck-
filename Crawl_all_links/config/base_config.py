@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
 
     # postgres database
-    POSTGRES_URL: PostgresDsn = "postgresql+asyncpg://localhost/watchai"
+    POSTGRES_URL: PostgresDsn = str
 
 
     model_config = SettingsConfigDict(env_file=f"{PROJECT_DIR}/.env", extra="ignore")
