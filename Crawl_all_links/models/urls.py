@@ -4,7 +4,16 @@ from sqlalchemy import func
 import sqlalchemy as sa
 from datetime import datetime
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column
+from sqlalchemy import create_engine
+
+from Crawl_all_links.config.base_config import settings
+
+engine = create_engine(str(settings.POSTGRES_URL))
+
 Base = declarative_base()
+
+
+
 
 class Urls(Base):
     # 页面
@@ -18,5 +27,9 @@ class Urls(Base):
     is_external: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False, index=True,
                                               comment="是否为外链url")
     referer: Mapped[Optional[str]] = mapped_column(sa.Text, comment="父页面")
-    crawl_at: Mapped[Optional[datetime]] = mapped_column(sa.DateTime, default=func.now(),comment="页面最后爬取时间")
+    crawl_at: Mapped[Optional[datetime]] = mapped_column(sa.DateTime, default=func.now(), comment="页面最后爬取时间")
     update_at: Mapped[datetime] = mapped_column(sa.DateTime, onupdate=func.now(), comment="页面最后修改时间")
+
+
+# 连接数据库并创建所有表（包括Urls类映射的urls表）
+Base.metadata.create_all(engine)
