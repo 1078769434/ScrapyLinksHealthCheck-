@@ -4,18 +4,20 @@ from urllib.parse import urlparse
 
 import scrapy
 import re
+
+from Crawl_all_links import config
 from Crawl_all_links.utils.page_type import PageType
 from scrapy import signals
 
 import re
 from datetime import datetime
-from Crawl_all_links.config.base_config import settings
+
 from pybloom_live import BloomFilter
 from Crawl_all_links.utils.log_config import logger
 
 
 class BaseSpider(scrapy.Spider):
-    start_urls = [settings.START_URL]
+    start_urls = [config.START_URL]
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0"
@@ -59,20 +61,20 @@ class BaseSpider(scrapy.Spider):
             "Crawl_all_links.import_pg_db.pipelines.CrawlAllLinksPipeline": 300
         },
         # 深度限制 无限制
-        'DEPTH_LIMIT': settings.DEPTH_LIMIT,
-        'DOWNLOAD_DELAY': settings.DOWNLOAD_DELAY,
-        'CONCURRENT_REQUESTS': settings.CONCURRENT_REQUESTS,
-        'HTTPERROR_ALLOW_ALL': settings.HTTPERROR_ALLOW_ALL,
+        'DEPTH_LIMIT': config.DEPTH_LIMIT,
+        'DOWNLOAD_DELAY': config.DOWNLOAD_DELAY,
+        'CONCURRENT_REQUESTS': config.CONCURRENT_REQUESTS,
+        'HTTPERROR_ALLOW_ALL': config.HTTPERROR_ALLOW_ALL,
         'DEPTH_STATS_VERBOSE': True,
         'SQLALCHEMY_DB_SETTINGS': {
             # 本地数据库
-            'database_url': str(settings.POSTGRES_URL)
+            'database_url': str(config.settings.POSTGRES_URL)
         },
     }
 
     def __init__(self, *args, **kwargs):
         super(BaseSpider, self).__init__(*args, **kwargs)
-        self.domain = self.get_domain_name(settings.START_URL)
+        self.domain = self.get_domain_name(config.START_URL)
         self.visited_urls = BloomFilter(capacity=1000000, error_rate=0.001)
         # 添加月份名称到数字的映射
         self.month_numbers = {

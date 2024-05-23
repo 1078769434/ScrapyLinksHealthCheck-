@@ -9,11 +9,6 @@ PROJECT_DIR: Path = Path(__file__).resolve().parent.parent.parent
 class Settings(BaseSettings):
     PROJECT_DIR: Path = PROJECT_DIR
 
-    START_URL: str
-    DEPTH_LIMIT: int
-    DOWNLOAD_DELAY: int
-    HTTPERROR_ALLOW_ALL: bool = True
-    CONCURRENT_REQUESTS: int
 
 
     # postgres database

@@ -1,10 +1,13 @@
-# from .base_config import settings
-#
+# 爬虫基础配置
+
+
 # #起始url
-# settings.START_URL = "http://www.wendeng.gov.cn/col/col79327/index.html"
+START_URL: str = "http://www.wendeng.gov.cn/col/col79327/index.html"
 # #爬虫深度
-# settings.DEPTH_LIMIT = 0
+DEPTH_LIMIT: int = 0
 # #爬虫延时
-# settings.DOWNLOAD_DELAY = 0
+DOWNLOAD_DELAY: int = 0
+
+HTTPERROR_ALLOW_ALL: bool = True
 # #并发请求
-# settings.CONCURRENT_REQUESTS = 5
+CONCURRENT_REQUESTS: int = 5
