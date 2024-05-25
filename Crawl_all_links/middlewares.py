@@ -3,11 +3,20 @@
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 import re
+from typing import Tuple, Optional, Dict
 
 from scrapy import signals
 
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
+
+from Crawl_all_links import config
+from Crawl_all_links.proxy.fast_proxy_tunnel import IpProxy_2
+from Crawl_all_links.proxy.proxy_ip_pool import create_ip_pool
+from Crawl_all_links.proxy.proxy_ip_provider import IpInfoModel
+import random
+
+from Crawl_all_links.tools import utils
 
 
 class CrawlAllLinksSpiderMiddleware:
@@ -78,6 +87,18 @@ class CrawlAllLinksDownloaderMiddleware:
         if self.media_regex.search(request.url):
             # 修改原始请求的方法为 HEAD，避免下载内容
             request.method = 'HEAD'
+
+
+        if config.ENABLE_IP_PROXY:
+            proxy_url_list = IpProxy_2.get_proxies(2)
+            if proxy_url_list:  # 检查代理列表是否为空
+                selected_proxy = random.choice(proxy_url_list)
+                request.meta['proxy'] = selected_proxy['http']
+                spider.logger.info(f"使用的代理ip为: {selected_proxy['http']}")
+            else:
+                utils.logger.warning("No proxy URLs available.")
+
+
         # Must either:
         # - return None: continue processing this request
         # - or return a Response object
