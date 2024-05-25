@@ -6,6 +6,7 @@ import scrapy
 import re
 
 from Crawl_all_links import config
+from Crawl_all_links.tools.spider_util import get_user_agent
 from Crawl_all_links.utils.page_type import PageType
 from scrapy import signals
 
@@ -19,9 +20,7 @@ from Crawl_all_links.utils.log_config import logger
 class BaseSpider(scrapy.Spider):
     start_urls = [config.START_URL]
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0"
-    }
+    headers = get_user_agent()
 
     # 文章类型
     content_extensions = ['.html']

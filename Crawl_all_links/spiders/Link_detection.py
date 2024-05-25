@@ -38,17 +38,18 @@ class LinkDetectionSpider(BaseSpider):
                     url = response.urljoin(link)
                     parsed_url_to_check = urlparse(url)
                     if parsed_url_to_check.netloc == self.domain and url not in self.visited_urls:
-                        self.visited_urls.add(url)
-                        yield scrapy.Request(url=url, callback=self.parse, errback=self.errback)
-                        yield scrapy.Request(url, callback=self.parse_content, errback=self.errback)
+                        # 确保链接以http://或https://开头，否则忽略
+                        if url.startswith(('http://', 'https://')):
+                            self.visited_urls.add(url)
+                            yield scrapy.Request(url=url, callback=self.parse, errback=self.errback)
+                            yield scrapy.Request(url, callback=self.parse_content, errback=self.errback)
                     elif not parsed_url_to_check.netloc == self.domain and url not in self.visited_urls:
-                        self.visited_urls.add(url)
-                        yield scrapy.Request(url=url, callback=self.parse_content, errback=self.errback,
-                                         meta={'referer': response.url})  # 解析页面内容
-            except NotSupported as e:
-                logger.error(e)
-                yield scrapy.Request(url=response.url, callback=self.parse_content, errback=self.errback,
-                                     meta={'referer': response.url})  # 解析页面内容
+                        if url.startswith(('http://', 'https://')):
+                            self.visited_urls.add(url)
+                            yield scrapy.Request(url=url, callback=self.parse_content, errback=self.errback,
+                                             meta={'referer': response.url})  # 解析页面内容
+            except Exception as e:
+                continue
 
 
     def parse_content(self, response):
